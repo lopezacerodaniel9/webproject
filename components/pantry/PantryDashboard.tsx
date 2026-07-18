@@ -125,6 +125,7 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
     { id: 'coming-soon-3', label: 'Módulo 3', icon: Boxes, active: false, module: 3 },
   ];
 
+  const Sidebar = ({ mobile = false }: { mobile?: boolean }) => {
     const displayName = userPrefs?.display_name || userEmail.split('@')[0];
     const initial = displayName.charAt(0).toUpperCase();
 
