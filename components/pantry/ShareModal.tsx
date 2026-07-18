@@ -17,6 +17,7 @@ interface Props {
 
 export default function ShareModal({ open, onClose, activePantry, onUpdate }: Props) {
   const [joinCode, setJoinCode] = useState('');
+  const [newName, setNewName] = useState('');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const supabase = createClient();
@@ -52,6 +53,51 @@ export default function ShareModal({ open, onClose, activePantry, onUpdate }: Pr
       onClose();
     } catch (err: any) {
       toast.error(err.message || 'Error al unirse a la despensa');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No autenticado');
+
+      const newId = crypto.randomUUID();
+
+      // Insert pantry
+      const { error: pErr } = await supabase.from('pantries').insert({
+        id: newId,
+        name: newName.trim(),
+        created_by: user.id
+      });
+      if (pErr) throw pErr;
+
+      // Insert owner
+      const { error: mErr } = await supabase.from('pantry_members').insert({
+        pantry_id: newId,
+        user_id: user.id,
+        role: 'owner'
+      });
+      if (mErr) throw mErr;
+
+      // Update active
+      await supabase.from('user_preferences').upsert({
+        user_id: user.id,
+        active_pantry_id: newId
+      });
+
+      toast.success(`Entorno "${newName.trim()}" creado correctamente`);
+      setNewName('');
+      onUpdate();
+      onClose();
+    } catch (err: any) {
+      toast.error('Error al crear la despensa');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -127,6 +173,35 @@ export default function ShareModal({ open, onClose, activePantry, onUpdate }: Pr
                 className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-900/30"
               >
                 {loading ? 'Uniendo...' : 'Unirme'}
+              </Button>
+            </div>
+          </form>
+
+          <div className="h-px bg-white/5 w-full" />
+
+          {/* Create New Pantry */}
+          <form onSubmit={handleCreate} className="space-y-3">
+            <div>
+              <h3 className="text-sm font-medium text-foreground">Crear un nuevo entorno</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Ideal para tener despensas separadas (ej. Casa de la playa, Piso compartido).
+              </p>
+            </div>
+            
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="Nombre de la despensa..."
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="flex-1 bg-white/5 border-white/10 focus:border-violet-500/50"
+              />
+              <Button
+                type="submit"
+                disabled={loading || !newName.trim()}
+                className="bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-lg shadow-violet-900/30"
+              >
+                {loading ? 'Creando...' : 'Crear'}
               </Button>
             </div>
           </form>
