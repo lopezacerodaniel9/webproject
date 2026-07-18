@@ -3,16 +3,18 @@
 import { useState, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { GroupedItems, ItemCategory, PantryItemWithStatus, CATEGORY_ICONS } from '@/types/pantry';
+import { GroupedItems, ItemCategory, PantryItemWithStatus, CATEGORY_ICONS, Pantry, UserPreferences } from '@/types/pantry';
 import { getExpiryColorClasses } from '@/utils/dateUtils';
 import CategoryGroup from './CategoryGroup';
 import AddItemModal from './AddItemModal';
+import SettingsModal from './SettingsModal';
+import ShareModal from './ShareModal';
 import EmptyState from './EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   ChefHat, Plus, LogOut, TrendingDown, AlertTriangle, Clock, Package,
-  Menu, X, Boxes, Search, Filter, SlidersHorizontal,
+  Menu, X, Boxes, Search, Filter, SlidersHorizontal, Settings, Users, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -28,6 +30,9 @@ type FilterStatus = 'all' | 'expired' | 'critical' | 'warning' | 'safe';
 interface Props {
   grouped: GroupedItems[];
   userEmail: string;
+  userPrefs: UserPreferences | null;
+  activePantry: Pantry | null;
+  pantries: Pantry[];
   stats: {
     totalItems: number;
     critical: number;
@@ -36,14 +41,35 @@ interface Props {
   };
 }
 
-export default function PantryDashboard({ grouped, userEmail, stats }: Props) {
+export default function PantryDashboard({ grouped, userEmail, userPrefs, activePantry, pantries, stats }: Props) {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const supabase = createClient();
+
+  const handleUpdate = () => {
+    startTransition(() => {
+      router.refresh();
+    });
+  };
+
+  const handleSwitchPantry = async (pantryId: string) => {
+    if (!userPrefs) return;
+    try {
+      await supabase.from('user_preferences').upsert({
+        user_id: userPrefs.user_id,
+        active_pantry_id: pantryId,
+      });
+      handleUpdate();
+    } catch (err) {
+      toast.error('Error al cambiar de despensa');
+    }
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -99,86 +125,98 @@ export default function PantryDashboard({ grouped, userEmail, stats }: Props) {
     { id: 'coming-soon-3', label: 'Módulo 3', icon: Boxes, active: false, module: 3 },
   ];
 
-  const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
-    <aside
-      className={`
-        flex flex-col h-full
-        ${mobile ? 'w-full' : 'w-64'}
-        bg-[#0d0d18] border-r border-white/5
-      `}
-    >
-      {/* Logo */}
-      <div className="p-5 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center glow-violet">
-            <ChefHat className="w-5 h-5 text-violet-400" />
-          </div>
-          <div>
-            <p className="font-bold text-sm text-white leading-tight">Asistente</p>
-            <p className="text-xs text-muted-foreground">Personal</p>
+    const displayName = userPrefs?.display_name || userEmail.split('@')[0];
+    const initial = displayName.charAt(0).toUpperCase();
+
+    return (
+      <aside
+        className={`
+          flex flex-col h-full
+          ${mobile ? 'w-full' : 'w-64'}
+          bg-[#0d0d18] border-r border-white/5
+        `}
+      >
+        {/* Logo */}
+        <div className="p-5 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center glow-violet">
+              <ChefHat className="w-5 h-5 text-violet-400" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-white leading-tight">Asistente</p>
+              <p className="text-xs text-muted-foreground">Personal</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Nav */}
-      <nav className="flex-1 p-3 space-y-1">
-        <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-          Módulos
-        </p>
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            id={`nav-${item.id}`}
-            disabled={!item.active}
-            className={`
-              w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
-              ${item.active
-                ? 'bg-violet-600/15 text-violet-300 border border-violet-500/20'
-                : 'text-muted-foreground/40 cursor-not-allowed'
-              }
-            `}
-          >
-            <item.icon className="w-4 h-4 flex-shrink-0" />
-            <span className="truncate">{item.label}</span>
-            {!item.active && (
-              <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-md bg-white/5 text-muted-foreground/40 font-medium">
-                Pronto
-              </span>
-            )}
-          </button>
-        ))}
-      </nav>
-
-      {/* User */}
-      <div className="p-3 border-t border-white/5">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            id="user-menu-trigger"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-left"
-          >
-            <div className="w-8 h-8 rounded-full bg-violet-600/30 border border-violet-500/30 flex items-center justify-center text-violet-300 text-sm font-semibold flex-shrink-0">
-              {userInitial}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{userEmail}</p>
-              <p className="text-xs text-muted-foreground">Usuario activo</p>
-            </div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 bg-[#13131f] border-white/10">
-            <DropdownMenuSeparator className="bg-white/5" />
-            <DropdownMenuItem
-              id="btn-sign-out"
-              onClick={handleSignOut}
-              className="text-red-400 focus:text-red-300 focus:bg-red-950/30 cursor-pointer"
+        {/* Nav */}
+        <nav className="flex-1 p-3 space-y-1">
+          <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+            Módulos
+          </p>
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              id={`nav-${item.id}`}
+              disabled={!item.active}
+              className={`
+                w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                ${item.active
+                  ? 'bg-violet-600/15 text-violet-300 border border-violet-500/20'
+                  : 'text-muted-foreground/40 cursor-not-allowed'
+                }
+              `}
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              Cerrar sesión
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </aside>
-  );
+              <item.icon className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">{item.label}</span>
+              {!item.active && (
+                <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-md bg-white/5 text-muted-foreground/40 font-medium">
+                  Pronto
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {/* User */}
+        <div className="p-3 border-t border-white/5">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              id="user-menu-trigger"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-left"
+            >
+              <div className="w-8 h-8 rounded-full bg-violet-600/30 border border-violet-500/30 flex items-center justify-center text-violet-300 text-sm font-semibold flex-shrink-0 uppercase">
+                {initial}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+                <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-[#13131f] border-white/10">
+              <DropdownMenuItem onClick={() => setShowSettingsModal(true)} className="text-muted-foreground cursor-pointer focus:bg-white/5">
+                <Settings className="w-4 h-4 mr-2" />
+                Ajustes de Perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowShareModal(true)} className="text-muted-foreground cursor-pointer focus:bg-white/5">
+                <Users className="w-4 h-4 mr-2" />
+                Gestionar Despensa
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuItem
+                id="btn-sign-out"
+                onClick={handleSignOut}
+                className="text-red-400 focus:text-red-300 focus:bg-red-950/30 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Cerrar sesión
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </aside>
+    );
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -215,12 +253,40 @@ export default function PantryDashboard({ grouped, userEmail, stats }: Props) {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-foreground">Mi Despensa</h1>
+          
+          <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+            {pantries.length > 1 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-2 hover:bg-white/5 px-2 py-1 -ml-2 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500">
+                  <h1 className="text-lg font-bold text-foreground truncate max-w-[200px] sm:max-w-xs">{activePantry?.name || 'Mi Despensa'}</h1>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56 bg-[#13131f] border-white/10">
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
+                    Cambiar Despensa
+                  </div>
+                  <DropdownMenuSeparator className="bg-white/5" />
+                  {pantries.map(p => (
+                    <DropdownMenuItem
+                      key={p.id}
+                      onClick={() => handleSwitchPantry(p.id)}
+                      className={`cursor-pointer ${p.id === activePantry?.id ? 'text-violet-400 bg-white/5' : 'text-foreground'}`}
+                    >
+                      {p.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <h1 className="text-lg font-bold text-foreground truncate">{activePantry?.name || 'Mi Despensa'}</h1>
+            )}
+            
             <p className="text-xs text-muted-foreground">
+              <span className="hidden sm:inline">• </span>
               {stats.totalItems} {stats.totalItems === 1 ? 'producto' : 'productos'} en inventario
             </p>
           </div>
+
           <Button
             id="btn-add-item"
             onClick={() => setShowAddModal(true)}
@@ -392,10 +458,28 @@ export default function PantryDashboard({ grouped, userEmail, stats }: Props) {
       </main>
 
       {/* Add Item Modal */}
-      <AddItemModal
-        open={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onSuccess={handleItemAdded}
+      {activePantry && (
+        <AddItemModal
+          open={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={handleItemAdded}
+          activePantryId={activePantry.id}
+        />
+      )}
+
+      <SettingsModal
+        open={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        userPrefs={userPrefs}
+        userEmail={userEmail}
+        onUpdate={handleUpdate}
+      />
+
+      <ShareModal
+        open={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        activePantry={activePantry}
+        onUpdate={handleUpdate}
       />
     </div>
   );

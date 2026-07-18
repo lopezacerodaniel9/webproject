@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import { enrichItemWithStatus, sortByExpiry } from '@/utils/dateUtils';
 import PantryDashboard from '@/components/pantry/PantryDashboard';
-import { GroupedItems, ItemCategory } from '@/types/pantry';
+import { GroupedItems, ItemCategory, Pantry, UserPreferences } from '@/types/pantry';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -13,20 +13,46 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // Fetch pantry items (active only, no soft-deleted)
-  const { data: items, error } = await supabase
-    .from('pantry_items')
+  // Fetch pantries the user belongs to
+  const { data: pantries, error: pantriesError } = await supabase
+    .from('pantries')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  // Fetch user preferences (for display_name and active_pantry_id)
+  const { data: prefsData } = await supabase
+    .from('user_preferences')
     .select('*')
     .eq('user_id', user.id)
-    .is('deleted_at', null)
-    .order('expiration_date', { ascending: true });
+    .single();
 
-  if (error) {
-    console.error('Error fetching pantry items:', error);
+  const userPrefs = prefsData as UserPreferences | null;
+
+  // Determine active pantry
+  let activePantryId = userPrefs?.active_pantry_id;
+  if (!activePantryId && pantries && pantries.length > 0) {
+    activePantryId = pantries[0].id;
+  }
+
+  const activePantry = pantries?.find(p => p.id === activePantryId) || null;
+
+  // Fetch pantry items for the active pantry
+  let items = [];
+  if (activePantryId) {
+    const { data, error } = await supabase
+      .from('pantry_items')
+      .select('*')
+      .eq('pantry_id', activePantryId)
+      .is('deleted_at', null)
+      .order('expiration_date', { ascending: true });
+    
+    if (!error && data) {
+      items = data;
+    }
   }
 
   // Enrich items with expiry status
-  const enrichedItems = (items ?? []).map(enrichItemWithStatus);
+  const enrichedItems = items.map(enrichItemWithStatus);
 
   // Group by category
   const groupMap = new Map<ItemCategory, typeof enrichedItems>();
@@ -58,6 +84,9 @@ export default async function DashboardPage() {
     <PantryDashboard
       grouped={grouped}
       userEmail={user.email ?? ''}
+      userPrefs={userPrefs}
+      activePantry={activePantry}
+      pantries={pantries as Pantry[] || []}
       stats={{ totalItems, critical, expired, warning }}
     />
   );

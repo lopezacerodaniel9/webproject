@@ -27,6 +27,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  activePantryId: string;
 }
 
 const MAX_FILE_SIZE_MB = 5;
@@ -36,7 +37,7 @@ const COMPRESSION_OPTIONS = {
   useWebWorker: true,
 };
 
-export default function AddItemModal({ open, onClose, onSuccess }: Props) {
+export default function AddItemModal({ open, onClose, onSuccess, activePantryId }: Props) {
   const supabase = createClient();
 
   // Form state
@@ -224,8 +225,9 @@ export default function AddItemModal({ open, onClose, onSuccess }: Props) {
       // Upload image if present
       const imageUrl = await uploadImage(user.id);
 
-      const newItem: NewPantryItem & { user_id: string } = {
-        user_id: user.id,
+      const newItem: NewPantryItem & { added_by: string, pantry_id: string } = {
+        added_by: user.id,
+        pantry_id: activePantryId,
         name: name.trim(),
         category,
         quantity: quantity ? parseFloat(quantity) : null,

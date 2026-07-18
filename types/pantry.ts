@@ -65,7 +65,8 @@ export const CATEGORY_ICONS: Record<ItemCategory, string> = {
 
 export interface PantryItem {
   id: string;
-  user_id: string;
+  pantry_id: string;
+  added_by: string;
   name: string;
   category: ItemCategory;
   quantity: number | null;
@@ -90,11 +91,28 @@ export interface GroupedItems {
 
 export interface UserPreferences {
   user_id: string;
+  display_name: string | null;
+  active_pantry_id: string | null;
   notify_expiry_days: number;
   notify_email: boolean;
   theme: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface Pantry {
+  id: string;
+  name: string;
+  share_code: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface PantryMember {
+  pantry_id: string;
+  user_id: string;
+  role: 'owner' | 'member';
+  created_at: string;
 }
 
 export interface NewPantryItem {
@@ -105,4 +123,5 @@ export interface NewPantryItem {
   expiration_date: string | null;
   image_url: string | null;
   notes: string | null;
+  pantry_id: string;
 }
