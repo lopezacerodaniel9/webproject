@@ -4,7 +4,8 @@ import { ExpiryStatus, PantryItem, PantryItemWithStatus } from '@/types/pantry';
  * Calcula los días que faltan hasta la fecha de caducidad.
  * Puede ser negativo si ya ha caducado.
  */
-export function getDaysUntilExpiry(expirationDate: string): number {
+export function getDaysUntilExpiry(expirationDate: string | null): number {
+  if (!expirationDate) return Infinity;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -76,6 +77,7 @@ export function getExpiryColorClasses(status: ExpiryStatus): {
  * Texto legible para el estado de caducidad.
  */
 export function getExpiryLabel(days: number): string {
+  if (days === Infinity) return 'Sin caducidad';
   if (days < 0) return `Caducado hace ${Math.abs(days)} día${Math.abs(days) === 1 ? '' : 's'}`;
   if (days === 0) return '¡Caduca hoy!';
   if (days === 1) return 'Caduca mañana';
@@ -101,7 +103,8 @@ export function sortByExpiry(items: PantryItemWithStatus[]): PantryItemWithStatu
 /**
  * Formatea una fecha ISO a formato legible en español.
  */
-export function formatDate(dateStr: string): string {
+export function formatDate(dateStr: string | null): string {
+  if (!dateStr) return 'Sin fecha';
   const date = new Date(dateStr + 'T00:00:00');
   return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 }

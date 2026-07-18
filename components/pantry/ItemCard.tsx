@@ -36,10 +36,11 @@ export default function ItemCard({ item, onDeleted }: Props) {
     startTransition(async () => {
       const { error } = await supabase
         .from('pantry_items')
-        .update({ deleted_at: new Date().toISOString() })
+        .delete()
         .eq('id', item.id);
 
       if (error) {
+        console.error('Consume error:', error);
         toast.error('Error al marcar como consumido');
         return;
       }
@@ -52,10 +53,11 @@ export default function ItemCard({ item, onDeleted }: Props) {
     startTransition(async () => {
       const { error } = await supabase
         .from('pantry_items')
-        .update({ deleted_at: new Date().toISOString() })
+        .delete()
         .eq('id', item.id);
 
       if (error) {
+        console.error('Delete error:', error);
         toast.error('Error al eliminar el producto');
         return;
       }

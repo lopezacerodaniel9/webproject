@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Camera, Upload, X, Loader2, Save, ImageIcon } from 'lucide-react';
+import { Camera, Upload, X, Loader2, Save, ImageIcon, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import imageCompression from 'browser-image-compression';
 import Image from 'next/image';
@@ -41,7 +41,7 @@ export default function EditItemModal({ item, open, onClose, onSuccess }: Props)
   const [category, setCategory] = useState<ItemCategory>(item.category as ItemCategory);
   const [quantity, setQuantity] = useState(item.quantity?.toString() ?? '');
   const [unit, setUnit] = useState<ItemUnit>((item.unit as ItemUnit) ?? 'unidades');
-  const [expirationDate, setExpirationDate] = useState(item.expiration_date);
+  const [expirationDate, setExpirationDate] = useState(item.expiration_date || '');
   const [notes, setNotes] = useState(item.notes ?? '');
 
   // Image state
@@ -50,6 +50,7 @@ export default function EditItemModal({ item, open, onClose, onSuccess }: Props)
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
   const [removeCurrentImage, setRemoveCurrentImage] = useState(false);
   const [compressing, setCompressing] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -60,7 +61,7 @@ export default function EditItemModal({ item, open, onClose, onSuccess }: Props)
     setCategory(item.category as ItemCategory);
     setQuantity(item.quantity?.toString() ?? '');
     setUnit((item.unit as ItemUnit) ?? 'unidades');
-    setExpirationDate(item.expiration_date);
+    setExpirationDate(item.expiration_date || '');
     setNotes(item.notes ?? '');
     setCurrentImageUrl(item.image_url);
     setNewImageFile(null);
@@ -89,7 +90,56 @@ export default function EditItemModal({ item, open, onClose, onSuccess }: Props)
       setNewImageFile(compressed);
       setRemoveCurrentImage(false);
       const reader = new FileReader();
-      reader.onloadend = () => setNewImagePreview(reader.result as string);
+      reader.onloadend = async () => {
+        const base64data = reader.result as string;
+        setNewImagePreview(base64data);
+        
+        // --- Gemini AI Analysis ---
+        setAnalyzing(true);
+        try {
+          const res = await fetch('/api/analyze-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: base64data }),
+          });
+          
+          if (res.ok) {
+            const aiData = await res.json();
+            console.log('--- RESPUESTA BRUTA DE LA IA (GEMINI) ---');
+            console.log(aiData.rawResponse);
+            console.log('--- DATOS PROCESADOS ---');
+            console.log(aiData);
+            
+            // Auto-fill name if we want, or leave as is if editing
+            if (aiData.name && !name) {
+              setName(aiData.name);
+            }
+            
+            // Auto-fill expiration date
+            if (aiData.expirationDate) {
+              setExpirationDate(aiData.expirationDate);
+              toast.success('Fecha de caducidad actualizada por IA ✨');
+            } else {
+              toast.info('La IA no encontró una nueva fecha.');
+            }
+          } else {
+            try {
+              const errData = await res.json();
+              console.error('Error de IA:', errData);
+              if (errData.rawResponse) {
+                console.log('--- RESPUESTA BRUTA DE LA IA (ERROR) ---');
+                console.log(errData.rawResponse);
+              }
+            } catch (e) {}
+            toast.error('No se pudo analizar la imagen');
+          }
+        } catch (error) {
+          console.error('Error in AI analysis:', error);
+          toast.error('Error al analizar la imagen con IA');
+        } finally {
+          setAnalyzing(false);
+        }
+      };
       reader.readAsDataURL(compressed);
     } catch {
       setNewImageFile(file);
@@ -144,7 +194,6 @@ export default function EditItemModal({ item, open, onClose, onSuccess }: Props)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { toast.error('El nombre es obligatorio'); return; }
-    if (!expirationDate) { toast.error('La fecha de caducidad es obligatoria'); return; }
 
     setLoading(true);
 
@@ -172,7 +221,7 @@ export default function EditItemModal({ item, open, onClose, onSuccess }: Props)
           category,
           quantity: quantity ? parseFloat(quantity) : null,
           unit: quantity ? unit : null,
-          expiration_date: expirationDate,
+          expiration_date: expirationDate || null,
           image_url: finalImageUrl,
           notes: notes.trim() || null,
           updated_at: new Date().toISOString(),
@@ -282,14 +331,13 @@ export default function EditItemModal({ item, open, onClose, onSuccess }: Props)
             {/* Expiration Date */}
             <div className="space-y-1.5">
               <Label htmlFor="edit-item-expiration" className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                Fecha de caducidad *
+                Fecha de caducidad (opcional)
               </Label>
               <Input
                 id="edit-item-expiration"
                 type="date"
-                value={expirationDate}
+                value={expirationDate || ''}
                 onChange={(e) => setExpirationDate(e.target.value)}
-                required
                 className="bg-white/5 border-white/10 focus:border-amber-500/60 h-10 [color-scheme:dark]"
               />
             </div>
@@ -336,11 +384,19 @@ export default function EditItemModal({ item, open, onClose, onSuccess }: Props)
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  {compressing && (
+                  {compressing && !analyzing && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                       <div className="flex items-center gap-2 text-sm text-white">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         Procesando...
+                      </div>
+                    </div>
+                  )}
+                  {analyzing && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
+                      <div className="flex flex-col items-center gap-2 text-sm text-amber-300 font-medium">
+                        <Wand2 className="w-6 h-6 animate-pulse" />
+                        <span className="animate-pulse">Analizando...</span>
                       </div>
                     </div>
                   )}
@@ -418,7 +474,7 @@ export default function EditItemModal({ item, open, onClose, onSuccess }: Props)
             <Button
               type="submit"
               id="btn-save-edit"
-              disabled={loading || compressing}
+              disabled={loading || compressing || analyzing}
               className="flex-1 bg-amber-600 hover:bg-amber-500 text-white"
             >
               {loading ? (

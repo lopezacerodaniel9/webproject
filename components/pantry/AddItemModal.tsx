@@ -55,6 +55,7 @@ export default function AddItemModal({ open, onClose, onSuccess }: Props) {
 
   // Submit state
   const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -110,7 +111,60 @@ export default function AddItemModal({ open, onClose, onSuccess }: Props) {
       setImageFile(compressed);
 
       const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.onloadend = async () => {
+        const base64data = reader.result as string;
+        setImagePreview(base64data);
+        
+        // --- Gemini AI Analysis ---
+        setAnalyzing(true);
+        try {
+          const res = await fetch('/api/analyze-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: base64data }),
+          });
+          
+          if (res.ok) {
+            const aiData = await res.json();
+            console.log('--- RESPUESTA BRUTA DE LA IA (GEMINI) ---');
+            console.log(aiData.rawResponse);
+            console.log('--- DATOS PROCESADOS ---');
+            console.log(aiData);
+            
+            // Auto-fill name if empty
+            if (aiData.name && !name) {
+              setName(aiData.name);
+              if (aiData.category && CATEGORIES.includes(aiData.category)) {
+                setCategory(aiData.category as ItemCategory);
+                setCategoryAutoSet(true);
+              }
+            }
+            
+            // Auto-fill expiration date
+            if (aiData.expirationDate && !expirationDate) {
+              setExpirationDate(aiData.expirationDate);
+              toast.success('Fecha de caducidad detectada por IA ✨');
+            } else if (!aiData.expirationDate) {
+              toast.info('La IA no encontró una fecha. Por favor, introdúcela manualmente.');
+            }
+          } else {
+            try {
+              const errData = await res.json();
+              console.error('Error de IA:', errData);
+              if (errData.rawResponse) {
+                console.log('--- RESPUESTA BRUTA DE LA IA (ERROR) ---');
+                console.log(errData.rawResponse);
+              }
+            } catch (e) {}
+            toast.error('No se pudo analizar la imagen');
+          }
+        } catch (error) {
+          console.error('Error in AI analysis:', error);
+          toast.error('Error al analizar la imagen con IA');
+        } finally {
+          setAnalyzing(false);
+        }
+      };
       reader.readAsDataURL(compressed);
     } catch {
       toast.error('Error al procesar la imagen');
@@ -160,7 +214,6 @@ export default function AddItemModal({ open, onClose, onSuccess }: Props) {
     e.preventDefault();
 
     if (!name.trim()) { toast.error('El nombre es obligatorio'); return; }
-    if (!expirationDate) { toast.error('La fecha de caducidad es obligatoria'); return; }
 
     setLoading(true);
 
@@ -177,7 +230,7 @@ export default function AddItemModal({ open, onClose, onSuccess }: Props) {
         category,
         quantity: quantity ? parseFloat(quantity) : null,
         unit: quantity ? unit : null,
-        expiration_date: expirationDate,
+        expiration_date: expirationDate || null,
         image_url: imageUrl,
         notes: notes.trim() || null,
       };
@@ -293,7 +346,7 @@ export default function AddItemModal({ open, onClose, onSuccess }: Props) {
             {/* Expiration Date */}
             <div className="space-y-1.5">
               <Label htmlFor="item-expiration" className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                Fecha de caducidad *
+                Fecha de caducidad (opcional)
               </Label>
               <Input
                 id="item-expiration"
@@ -301,7 +354,6 @@ export default function AddItemModal({ open, onClose, onSuccess }: Props) {
                 value={expirationDate}
                 min={today}
                 onChange={(e) => setExpirationDate(e.target.value)}
-                required
                 className="bg-white/5 border-white/10 focus:border-violet-500/60 h-10 [color-scheme:dark]"
               />
             </div>
@@ -329,11 +381,19 @@ export default function AddItemModal({ open, onClose, onSuccess }: Props) {
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
-                  {compressing && (
+                  {compressing && !analyzing && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <div className="flex items-center gap-2 text-sm text-white">
+                      <div className="flex items-center gap-2 text-sm text-white font-medium">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         Comprimiendo...
+                      </div>
+                    </div>
+                  )}
+                  {analyzing && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
+                      <div className="flex flex-col items-center gap-2 text-sm text-violet-300 font-medium">
+                        <Wand2 className="w-6 h-6 animate-pulse" />
+                        <span className="animate-pulse">Analizando con IA...</span>
                       </div>
                     </div>
                   )}
@@ -416,7 +476,7 @@ export default function AddItemModal({ open, onClose, onSuccess }: Props) {
             <Button
               type="submit"
               id="btn-save-item"
-              disabled={loading || compressing}
+              disabled={loading || compressing || analyzing}
               className="flex-1 bg-violet-600 hover:bg-violet-500 text-white glow-violet"
             >
               {loading ? (

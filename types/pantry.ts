@@ -70,7 +70,7 @@ export interface PantryItem {
   category: ItemCategory;
   quantity: number | null;
   unit: ItemUnit | null;
-  expiration_date: string; // ISO date string: "YYYY-MM-DD"
+  expiration_date: string | null; // ISO date string: "YYYY-MM-DD" or null if unknown
   image_url: string | null;
   notes: string | null;
   deleted_at: string | null;
@@ -102,7 +102,7 @@ export interface NewPantryItem {
   category: ItemCategory;
   quantity: number | null;
   unit: ItemUnit | null;
-  expiration_date: string;
+  expiration_date: string | null;
   image_url: string | null;
   notes: string | null;
 }
