@@ -25,8 +25,14 @@ ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS display_name TEXT;
 ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS active_pantry_id UUID REFERENCES public.pantries(id) ON DELETE SET NULL;
 
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS pantry_id UUID REFERENCES public.pantries(id) ON DELETE CASCADE;
--- Renombrar user_id a added_by para saber quién añadió el producto (no afecta a políticas si las reescribimos)
-ALTER TABLE public.pantry_items RENAME COLUMN user_id TO added_by;
+
+-- Renombrar user_id a added_by de forma segura (por si el script se ejecuta varias veces)
+DO $$
+BEGIN
+  IF EXISTS(SELECT * FROM information_schema.columns WHERE table_name='pantry_items' AND column_name='user_id') THEN
+      ALTER TABLE public.pantry_items RENAME COLUMN user_id TO added_by;
+  END IF;
+END $$;
 
 -- 4. Migrar Datos Existentes
 DO $$
