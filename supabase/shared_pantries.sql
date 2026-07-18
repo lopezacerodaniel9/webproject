@@ -98,16 +98,20 @@ DROP POLICY IF EXISTS "pantry_items: update own" ON public.pantry_items;
 DROP POLICY IF EXISTS "pantry_items: delete own" ON public.pantry_items;
 
 -- Nuevas políticas de pantry_items basadas en pantry_id
+DROP POLICY IF EXISTS "pantry_items: select members" ON public.pantry_items;
 CREATE POLICY "pantry_items: select members" ON public.pantry_items FOR SELECT
 USING (EXISTS (SELECT 1 FROM public.pantry_members WHERE pantry_id = pantry_items.pantry_id AND user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "pantry_items: insert members" ON public.pantry_items;
 CREATE POLICY "pantry_items: insert members" ON public.pantry_items FOR INSERT
 WITH CHECK (EXISTS (SELECT 1 FROM public.pantry_members WHERE pantry_id = pantry_items.pantry_id AND user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "pantry_items: update members" ON public.pantry_items;
 CREATE POLICY "pantry_items: update members" ON public.pantry_items FOR UPDATE
 USING (EXISTS (SELECT 1 FROM public.pantry_members WHERE pantry_id = pantry_items.pantry_id AND user_id = auth.uid()))
 WITH CHECK (EXISTS (SELECT 1 FROM public.pantry_members WHERE pantry_id = pantry_items.pantry_id AND user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "pantry_items: delete members" ON public.pantry_items;
 CREATE POLICY "pantry_items: delete members" ON public.pantry_items FOR DELETE
 USING (EXISTS (SELECT 1 FROM public.pantry_members WHERE pantry_id = pantry_items.pantry_id AND user_id = auth.uid()));
 
