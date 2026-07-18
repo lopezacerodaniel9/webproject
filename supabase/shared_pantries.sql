@@ -71,18 +71,23 @@ ALTER TABLE public.pantries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pantry_members ENABLE ROW LEVEL SECURITY;
 
 -- Pantries: Los usuarios solo pueden ver las despensas a las que pertenecen
+DROP POLICY IF EXISTS "pantries: select members" ON public.pantries;
 CREATE POLICY "pantries: select members" ON public.pantries FOR SELECT
 USING (EXISTS (SELECT 1 FROM public.pantry_members WHERE pantry_id = id AND user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "pantries: update owners" ON public.pantries;
 CREATE POLICY "pantries: update owners" ON public.pantries FOR UPDATE
 USING (EXISTS (SELECT 1 FROM public.pantry_members WHERE pantry_id = id AND user_id = auth.uid() AND role = 'owner'));
 
+DROP POLICY IF EXISTS "pantries: insert authenticated" ON public.pantries;
 CREATE POLICY "pantries: insert authenticated" ON public.pantries FOR INSERT TO authenticated WITH CHECK (created_by = auth.uid());
 
 -- Pantry Members: Ver miembros de mis despensas
+DROP POLICY IF EXISTS "pantry_members: select shared" ON public.pantry_members;
 CREATE POLICY "pantry_members: select shared" ON public.pantry_members FOR SELECT
 USING (EXISTS (SELECT 1 FROM public.pantry_members pm WHERE pm.pantry_id = pantry_members.pantry_id AND pm.user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "pantry_members: insert own owner" ON public.pantry_members;
 CREATE POLICY "pantry_members: insert own owner" ON public.pantry_members FOR INSERT
 WITH CHECK (user_id = auth.uid() AND role = 'owner' AND EXISTS (SELECT 1 FROM public.pantries WHERE id = pantry_id AND created_by = auth.uid()));
 
