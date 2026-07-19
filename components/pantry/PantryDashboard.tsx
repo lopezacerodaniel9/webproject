@@ -11,13 +11,15 @@ import SettingsModal from './SettingsModal';
 import ShareModal from './ShareModal';
 import ReceiptScannerModal from './ReceiptScannerModal';
 import ReceiptHistoryModal from './ReceiptHistoryModal';
+import ShoppingList from './ShoppingList';
 import EmptyState from './EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   LogOut, ChefHat, Boxes, Plus, Menu, X, Search, Filter, 
   Trash2, AlertTriangle, AlertCircle, CheckCircle2, ChevronDown,
-  Users, Edit, Camera, TrendingDown, Clock, Package, SlidersHorizontal, Settings, History
+  Users, Edit, Camera, TrendingDown, Clock, Package, SlidersHorizontal, Settings, History,
+  ShoppingCart
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -45,6 +47,7 @@ interface Props {
 }
 
 export default function PantryDashboard({ grouped, userEmail, userPrefs, activePantry, pantries, stats }: Props) {
+  const [activeModule, setActiveModule] = useState<'pantry' | 'shopping-list'>('pantry');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -124,12 +127,6 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
     { value: 'safe', label: 'En buen estado', color: 'text-emerald-400' },
   ];
 
-  const navItems = [
-    { id: 'pantry', label: 'Mi Despensa', icon: ChefHat, active: true, module: 1 },
-    { id: 'coming-soon-2', label: 'Módulo 2', icon: Boxes, active: false, module: 2 },
-    { id: 'coming-soon-3', label: 'Módulo 3', icon: Boxes, active: false, module: 3 },
-  ];
-
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => {
     const displayName = userPrefs?.display_name || userEmail.split('@')[0];
     const initial = displayName.charAt(0).toUpperCase();
@@ -157,31 +154,23 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
 
         {/* Nav */}
         <nav className="flex-1 p-3 space-y-1">
-          <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-            Módulos
-          </p>
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              id={`nav-${item.id}`}
-              disabled={!item.active}
-              className={`
-                w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
-                ${item.active
-                  ? 'bg-violet-600/15 text-violet-300 border border-violet-500/20'
-                  : 'text-muted-foreground/40 cursor-not-allowed'
-                }
-              `}
-            >
-              <item.icon className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">{item.label}</span>
-              {!item.active && (
-                <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-md bg-white/5 text-muted-foreground/40 font-medium">
-                  Pronto
-                </span>
-              )}
-            </button>
-          ))}
+          <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400 hidden sm:block">
+            Antigravity
+          </h1>
+          <button
+            onClick={() => { setActiveModule('pantry'); if (mobile) setSidebarOpen(false); }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${activeModule === 'pantry' ? 'bg-violet-600/15 text-violet-300' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
+          >
+            <Boxes className="w-4 h-4" />
+            Inventario
+          </button>
+          <button
+            onClick={() => { setActiveModule('shopping-list'); if (mobile) setSidebarOpen(false); }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${activeModule === 'shopping-list' ? 'bg-indigo-600/15 text-indigo-300' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Lista de Compra
+          </button>
         </nav>
 
         {/* User */}
@@ -225,7 +214,7 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex flex-col sm:flex-row h-screen overflow-hidden bg-background">
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex flex-shrink-0">
         <Sidebar />
@@ -262,15 +251,20 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
             </button>
             
             <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-              <h1 className="text-xl font-bold text-foreground truncate max-w-[200px] sm:max-w-xs">Tus Despensas</h1>
+              <h1 className="text-xl font-bold text-foreground truncate max-w-[200px] sm:max-w-xs capitalize">
+                {activeModule === 'pantry' ? 'Mi Despensa' : 'Lista de la Compra'}
+              </h1>
               
-              <p className="text-xs text-muted-foreground">
-                <span className="hidden sm:inline">• </span>
-                {stats.totalItems} {stats.totalItems === 1 ? 'producto' : 'productos'} en inventario
-              </p>
+              {activeModule === 'pantry' && (
+                <p className="text-xs text-muted-foreground">
+                  <span className="hidden sm:inline">• </span>
+                  {stats.totalItems} {stats.totalItems === 1 ? 'producto' : 'productos'} en inventario
+                </p>
+              )}
             </div>
 
-            <div className="flex gap-2">
+            {activeModule === 'pantry' && (
+              <div className="flex gap-2">
               <Button
                 id="btn-history"
                 onClick={() => setShowHistoryModal(true)}
@@ -301,10 +295,11 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
                 <span className="sm:hidden">Añadir</span>
               </Button>
             </div>
+            )}
           </div>
 
-          {/* Pantry Tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {activeModule === 'pantry' && (
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {pantries.map((p) => {
               const isActive = p.id === activePantry?.id;
               const isPersonal = p.pantry_type === 'personal';
@@ -328,13 +323,18 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
               );
             })}
           </div>
+          )}
         </header>
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-5 max-w-7xl mx-auto">
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {activeModule === 'shopping-list' ? (
+              activePantry && <ShoppingList activePantryId={activePantry.id} />
+            ) : (
+              <>
+                {/* Stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <StatCard
                 icon={Package}
                 label="Total"
@@ -485,6 +485,8 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
                 ))}
               </div>
             )}
+            </>
+            )}
           </div>
         </div>
       </main>
@@ -531,6 +533,43 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
           activePantryId={activePantry.id}
         />
       )}
+      
+      {/* BOTTOM TAB BAR (Opción A) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#13131f] border-t border-white/5 sm:hidden z-50 flex items-center justify-around px-2 py-3 pb-safe">
+        <button 
+          onClick={() => setActiveModule('pantry')}
+          className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all ${activeModule === 'pantry' ? 'text-violet-400' : 'text-muted-foreground hover:text-white'}`}
+        >
+          <Boxes className={`w-6 h-6 mb-1 ${activeModule === 'pantry' ? 'fill-violet-400/20' : ''}`} />
+          <span className="text-[10px] font-medium">Inventario</span>
+        </button>
+
+        <button 
+          onClick={() => setActiveModule('shopping-list')}
+          className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all ${activeModule === 'shopping-list' ? 'text-indigo-400' : 'text-muted-foreground hover:text-white'}`}
+        >
+          <ShoppingCart className={`w-6 h-6 mb-1 ${activeModule === 'shopping-list' ? 'fill-indigo-400/20' : ''}`} />
+          <span className="text-[10px] font-medium">Compra</span>
+        </button>
+
+        <button 
+          onClick={() => setShowSettingsModal(true)}
+          className="flex flex-col items-center justify-center p-2 rounded-xl text-muted-foreground hover:text-white transition-all"
+        >
+          <Settings className="w-6 h-6 mb-1" />
+          <span className="text-[10px] font-medium">Ajustes</span>
+        </button>
+      </div>
+
+      {/* Floating Settings Button (Desktop only now) */}
+      <div className="fixed bottom-6 right-6 hidden sm:block">
+        <Button
+          onClick={() => setShowSettingsModal(true)}
+          className="w-14 h-14 rounded-full bg-[#1a1a2e] border border-white/10 hover:bg-white/10 text-white shadow-2xl flex items-center justify-center transition-all hover:scale-105"
+        >
+          <Settings className="w-6 h-6 text-muted-foreground" />
+        </Button>
+      </div>
     </div>
   );
 }
