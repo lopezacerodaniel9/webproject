@@ -10,13 +10,14 @@ import AddItemModal from './AddItemModal';
 import SettingsModal from './SettingsModal';
 import ShareModal from './ShareModal';
 import ReceiptScannerModal from './ReceiptScannerModal';
+import ReceiptHistoryModal from './ReceiptHistoryModal';
 import EmptyState from './EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   LogOut, ChefHat, Boxes, Plus, Menu, X, Search, Filter, 
   Trash2, AlertTriangle, AlertCircle, CheckCircle2, ChevronDown,
-  Users, Edit, Camera, TrendingDown, Clock, Package, SlidersHorizontal, Settings
+  Users, Edit, Camera, TrendingDown, Clock, Package, SlidersHorizontal, Settings, History
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -48,6 +49,7 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
@@ -269,6 +271,16 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
             </div>
 
             <div className="flex gap-2">
+              <Button
+                id="btn-history"
+                onClick={() => setShowHistoryModal(true)}
+                variant="outline"
+                className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300 rounded-xl gap-2 transition-all duration-200"
+              >
+                <History className="w-4 h-4" />
+                <span className="hidden sm:inline">Historial</span>
+              </Button>
+
               <Button
                 id="btn-scan-receipt"
                 onClick={() => setShowReceiptModal(true)}
@@ -509,6 +521,14 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
           onClose={() => setShowReceiptModal(false)}
           activePantryId={activePantry.id}
           onUpdate={handleUpdate}
+        />
+      )}
+
+      {activePantry && (
+        <ReceiptHistoryModal
+          open={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+          activePantryId={activePantry.id}
         />
       )}
     </div>

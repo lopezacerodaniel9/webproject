@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
     const base64Data = imageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }); // Use flash for speed, 1.5 has great document understanding
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' }); // Use flash for speed, 1.5 has great document understanding
 
     const prompt = `
       Analiza esta imagen de un ticket de compra de supermercado.

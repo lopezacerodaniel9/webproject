@@ -135,21 +135,27 @@ export default function ReceiptScannerModal({ open, onClose, activePantryId, onU
       if (!user) throw new Error('No autenticado');
 
       const inserts = items.map(item => ({
-        user_id: user.id, // for legacy
         added_by: user.id,
         pantry_id: activePantryId,
         name: item.name,
         category: item.category,
         quantity: item.quantity,
         unit: 'unidades',
-        // If not requires expiration, set a default far future date or handle it
-        // The DB currently requires expiration_date. We can put '2099-12-31' for non-perishables if it's required.
-        // Wait, the DB requires expiration_date!
         expiration_date: item.expiration_date || '2099-12-31'
       }));
 
       const { error } = await supabase.from('pantry_items').insert(inserts);
       if (error) throw error;
+
+      // Save receipt history
+      const itemsSummary = items.map(i => ({ name: i.name, quantity: i.quantity, category: i.category }));
+      const { error: receiptError } = await supabase.from('receipts').insert({
+        pantry_id: activePantryId,
+        added_by: user.id,
+        total_spent: totalSpent || 0,
+        items_summary: itemsSummary
+      });
+      if (receiptError) console.error('Error saving receipt history:', receiptError);
 
       toast.success(`${items.length} productos añadidos a la despensa`);
       onUpdate();
