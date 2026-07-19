@@ -14,6 +14,7 @@ import ReceiptHistoryModal from './ReceiptHistoryModal';
 import ShoppingList from './ShoppingList';
 import RecipeChefModal from './RecipeChefModal';
 import StatsDashboard from './StatsDashboard';
+import DailyCheckIn from './DailyCheckIn';
 import EmptyState from './EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -472,6 +473,12 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
                 </button>
               </div>
             )}
+
+            {/* Daily Check-in Card (Conditional based on time) */}
+            <DailyCheckIn 
+              items={grouped.flatMap(g => g.items)} 
+              onConsumeSuccess={handleUpdate} 
+            />
 
             {/* Inventory */}
             {grouped.length === 0 ? (
