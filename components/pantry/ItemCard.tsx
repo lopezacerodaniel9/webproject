@@ -44,7 +44,29 @@ export default function ItemCard({ item, onDeleted }: Props) {
         toast.error('Error al marcar como consumido');
         return;
       }
-      toast.success(`"${item.name}" marcado como consumido ✓`);
+      const actionToast = {
+        label: 'A la lista 🛒',
+        onClick: async () => {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { error: err } = await supabase.from('shopping_list').insert({
+              pantry_id: item.pantry_id,
+              name: item.name,
+              added_by: user.id
+            });
+            if (err) throw err;
+            toast.success(`"${item.name}" en tu lista de compra`);
+          } catch (e) {
+            toast.error('Error al añadir a la lista');
+          }
+        }
+      };
+
+      toast.success(`"${item.name}" marcado como consumido ✓`, { 
+        action: actionToast,
+        duration: 6000
+      });
       onDeleted();
     });
   };
@@ -69,7 +91,29 @@ export default function ItemCard({ item, onDeleted }: Props) {
         }
       }
 
-      toast.success(`"${item.name}" eliminado`);
+      const actionToast = {
+        label: 'A la lista 🛒',
+        onClick: async () => {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { error: err } = await supabase.from('shopping_list').insert({
+              pantry_id: item.pantry_id,
+              name: item.name,
+              added_by: user.id
+            });
+            if (err) throw err;
+            toast.success(`"${item.name}" en tu lista de compra`);
+          } catch (e) {
+            toast.error('Error al añadir a la lista');
+          }
+        }
+      };
+
+      toast.success(`"${item.name}" eliminado`, {
+        action: actionToast,
+        duration: 6000
+      });
       onDeleted();
     });
   };
