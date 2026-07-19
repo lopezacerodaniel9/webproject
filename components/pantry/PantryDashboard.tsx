@@ -13,6 +13,7 @@ import ReceiptScannerModal from './ReceiptScannerModal';
 import ReceiptHistoryModal from './ReceiptHistoryModal';
 import ShoppingList from './ShoppingList';
 import RecipeChefModal from './RecipeChefModal';
+import StatsDashboard from './StatsDashboard';
 import EmptyState from './EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,7 @@ import {
   LogOut, ChefHat, Boxes, Plus, Menu, X, Search, Filter, 
   Trash2, AlertTriangle, AlertCircle, CheckCircle2, ChevronDown,
   Users, Edit, Camera, TrendingDown, Clock, Package, SlidersHorizontal, Settings, History,
-  ShoppingCart
+  ShoppingCart, BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -48,7 +49,7 @@ interface Props {
 }
 
 export default function PantryDashboard({ grouped, userEmail, userPrefs, activePantry, pantries, stats }: Props) {
-  const [activeModule, setActiveModule] = useState<'pantry' | 'shopping-list'>('pantry');
+  const [activeModule, setActiveModule] = useState<'pantry' | 'shopping-list' | 'stats'>('pantry');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -173,6 +174,13 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
             <ShoppingCart className="w-4 h-4" />
             Lista de Compra
           </button>
+          <button
+            onClick={() => { setActiveModule('stats'); if (mobile) setSidebarOpen(false); }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${activeModule === 'stats' ? 'bg-emerald-600/15 text-emerald-300' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Finanzas
+          </button>
         </nav>
 
         {/* User */}
@@ -254,7 +262,7 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
             
             <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
               <h1 className="text-xl font-bold text-foreground truncate max-w-[200px] sm:max-w-xs capitalize">
-                {activeModule === 'pantry' ? 'Mi Despensa' : 'Lista de la Compra'}
+                {activeModule === 'pantry' ? 'Mi Despensa' : activeModule === 'stats' ? 'Estadísticas' : 'Lista de la Compra'}
               </h1>
               
               {activeModule === 'pantry' && (
@@ -343,6 +351,8 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
           <div className="p-6 space-y-5 max-w-7xl mx-auto">
             {activeModule === 'shopping-list' ? (
               activePantry && <ShoppingList activePantryId={activePantry.id} />
+            ) : activeModule === 'stats' ? (
+              activePantry && <StatsDashboard activePantryId={activePantry.id} />
             ) : (
               <>
                 {/* Stats */}
@@ -571,6 +581,14 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
         >
           <ShoppingCart className={`w-6 h-6 mb-1 ${activeModule === 'shopping-list' ? 'fill-indigo-400/20' : ''}`} />
           <span className="text-[10px] font-medium">Compra</span>
+        </button>
+
+        <button 
+          onClick={() => setActiveModule('stats')}
+          className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all ${activeModule === 'stats' ? 'text-emerald-400' : 'text-muted-foreground hover:text-white'}`}
+        >
+          <BarChart3 className={`w-6 h-6 mb-1 ${activeModule === 'stats' ? 'fill-emerald-400/20' : ''}`} />
+          <span className="text-[10px] font-medium">Finanzas</span>
         </button>
 
         <button 
