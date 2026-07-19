@@ -34,7 +34,7 @@ export async function updateSession(request: NextRequest) {
   // Redirect unauthenticated users to login
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith('/login');
-  const isPublicAsset = pathname.startsWith('/_next') || pathname.startsWith('/favicon');
+  const isPublicAsset = pathname.startsWith('/_next') || pathname.startsWith('/favicon') || pathname.startsWith('/api/cron');
 
   if (!user && !isAuthRoute && !isPublicAsset) {
     const loginUrl = request.nextUrl.clone();
