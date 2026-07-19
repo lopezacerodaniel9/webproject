@@ -12,6 +12,7 @@ import ShareModal from './ShareModal';
 import ReceiptScannerModal from './ReceiptScannerModal';
 import ReceiptHistoryModal from './ReceiptHistoryModal';
 import ShoppingList from './ShoppingList';
+import RecipeChefModal from './RecipeChefModal';
 import EmptyState from './EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +54,7 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showChefModal, setShowChefModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
@@ -265,6 +267,16 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
 
             {activeModule === 'pantry' && (
               <div className="flex gap-2">
+              <Button
+                id="btn-chef"
+                onClick={() => setShowChefModal(true)}
+                variant="outline"
+                className="border-violet-500/30 text-violet-400 hover:bg-violet-500/10 hover:text-violet-300 rounded-xl gap-2 transition-all duration-200"
+              >
+                <ChefHat className="w-4 h-4" />
+                <span className="hidden sm:inline">Chef IA</span>
+              </Button>
+
               <Button
                 id="btn-history"
                 onClick={() => setShowHistoryModal(true)}
@@ -530,6 +542,15 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
         <ReceiptHistoryModal
           open={showHistoryModal}
           onClose={() => setShowHistoryModal(false)}
+          activePantryId={activePantry.id}
+        />
+      )}
+
+      {activePantry && (
+        <RecipeChefModal
+          open={showChefModal}
+          onClose={() => setShowChefModal(false)}
+          pantryItems={grouped.flatMap(g => g.items)}
           activePantryId={activePantry.id}
         />
       )}
