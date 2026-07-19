@@ -84,8 +84,9 @@ CREATE POLICY "pantries: insert authenticated" ON public.pantries FOR INSERT TO 
 
 -- Pantry Members: Ver miembros de mis despensas
 DROP POLICY IF EXISTS "pantry_members: select shared" ON public.pantry_members;
-CREATE POLICY "pantry_members: select shared" ON public.pantry_members FOR SELECT
-USING (EXISTS (SELECT 1 FROM public.pantry_members pm WHERE pm.pantry_id = pantry_members.pantry_id AND pm.user_id = auth.uid()));
+DROP POLICY IF EXISTS "pantry_members: select own" ON public.pantry_members;
+CREATE POLICY "pantry_members: select own" ON public.pantry_members FOR SELECT
+USING (user_id = auth.uid());
 
 DROP POLICY IF EXISTS "pantry_members: insert own owner" ON public.pantry_members;
 CREATE POLICY "pantry_members: insert own owner" ON public.pantry_members FOR INSERT

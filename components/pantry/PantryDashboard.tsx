@@ -246,57 +246,61 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
-        <header className="flex-shrink-0 px-6 py-4 border-b border-white/5 flex items-center gap-4 bg-background/80 backdrop-blur-sm">
-          <button
-            id="mobile-menu-btn"
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-muted-foreground hover:text-foreground"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          
-          <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-            {pantries.length > 1 ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center gap-2 hover:bg-white/5 px-2 py-1 -ml-2 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500">
-                  <h1 className="text-lg font-bold text-foreground truncate max-w-[200px] sm:max-w-xs">{activePantry?.name || 'Mi Despensa'}</h1>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56 bg-[#13131f] border-white/10">
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
-                    Cambiar Despensa
-                  </div>
-                  <DropdownMenuSeparator className="bg-white/5" />
-                  {pantries.map(p => (
-                    <DropdownMenuItem
-                      key={p.id}
-                      onClick={() => handleSwitchPantry(p.id)}
-                      className={`cursor-pointer ${p.id === activePantry?.id ? 'text-violet-400 bg-white/5' : 'text-foreground'}`}
-                    >
-                      {p.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <h1 className="text-lg font-bold text-foreground truncate">{activePantry?.name || 'Mi Despensa'}</h1>
-            )}
+        <header className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-background/80 backdrop-blur-sm">
+          <div className="flex items-center gap-4 mb-4">
+            <button
+              id="mobile-menu-btn"
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden text-muted-foreground hover:text-foreground"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
             
-            <p className="text-xs text-muted-foreground">
-              <span className="hidden sm:inline">• </span>
-              {stats.totalItems} {stats.totalItems === 1 ? 'producto' : 'productos'} en inventario
-            </p>
+            <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+              <h1 className="text-xl font-bold text-foreground truncate max-w-[200px] sm:max-w-xs">Tus Despensas</h1>
+              
+              <p className="text-xs text-muted-foreground">
+                <span className="hidden sm:inline">• </span>
+                {stats.totalItems} {stats.totalItems === 1 ? 'producto' : 'productos'} en inventario
+              </p>
+            </div>
+
+            <Button
+              id="btn-add-item"
+              onClick={() => setShowAddModal(true)}
+              className="bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-lg shadow-violet-900/30 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Añadir producto</span>
+              <span className="sm:hidden">Añadir</span>
+            </Button>
           </div>
 
-          <Button
-            id="btn-add-item"
-            onClick={() => setShowAddModal(true)}
-            className="bg-violet-600 hover:bg-violet-500 text-white rounded-xl gap-2 shadow-lg shadow-violet-900/30 transition-all duration-200"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Añadir producto</span>
-            <span className="sm:hidden">Añadir</span>
-          </Button>
+          {/* Pantry Tabs */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {pantries.map((p) => {
+              const isActive = p.id === activePantry?.id;
+              const isPersonal = p.pantry_type === 'personal';
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => handleSwitchPantry(p.id)}
+                  className={`
+                    px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors
+                    ${isActive 
+                      ? 'bg-violet-600/15 text-violet-300 border border-violet-500/20' 
+                      : 'text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent'
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-2">
+                    {isPersonal ? <ChefHat className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+                    {p.name}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </header>
 
         {/* Scrollable content */}
@@ -480,6 +484,7 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
         open={showShareModal}
         onClose={() => setShowShareModal(false)}
         activePantry={activePantry}
+        userPrefs={userPrefs}
         onUpdate={handleUpdate}
       />
     </div>

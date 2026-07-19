@@ -93,6 +93,7 @@ export interface UserPreferences {
   user_id: string;
   display_name: string | null;
   active_pantry_id: string | null;
+  invite_code: string;
   notify_expiry_days: number;
   notify_email: boolean;
   theme: string;
@@ -104,6 +105,7 @@ export interface Pantry {
   id: string;
   name: string;
   share_code: string;
+  pantry_type: 'personal' | 'shared';
   created_by: string;
   created_at: string;
 }
