@@ -9,12 +9,14 @@ import CategoryGroup from './CategoryGroup';
 import AddItemModal from './AddItemModal';
 import SettingsModal from './SettingsModal';
 import ShareModal from './ShareModal';
+import ReceiptScannerModal from './ReceiptScannerModal';
 import EmptyState from './EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  ChefHat, Plus, LogOut, TrendingDown, AlertTriangle, Clock, Package,
-  Menu, X, Boxes, Search, Filter, SlidersHorizontal, Settings, Users, ChevronDown
+import { 
+  LogOut, ChefHat, Boxes, Plus, Menu, X, Search, Filter, 
+  Trash2, AlertTriangle, AlertCircle, CheckCircle2, ChevronDown,
+  Users, Edit, Camera, TrendingDown, Clock, Package, SlidersHorizontal, Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -45,6 +47,7 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
@@ -265,15 +268,27 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
               </p>
             </div>
 
-            <Button
-              id="btn-add-item"
-              onClick={() => setShowAddModal(true)}
-              className="bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-lg shadow-violet-900/30 flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Añadir producto</span>
-              <span className="sm:hidden">Añadir</span>
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                id="btn-scan-receipt"
+                onClick={() => setShowReceiptModal(true)}
+                variant="outline"
+                className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-xl gap-2 transition-all duration-200"
+              >
+                <Camera className="w-4 h-4" />
+                <span className="hidden sm:inline">Escanear Ticket</span>
+              </Button>
+
+              <Button
+                id="btn-add-item"
+                onClick={() => setShowAddModal(true)}
+                className="bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-lg shadow-violet-900/30 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Añadir producto</span>
+                <span className="sm:hidden">Añadir</span>
+              </Button>
+            </div>
           </div>
 
           {/* Pantry Tabs */}
@@ -487,6 +502,15 @@ export default function PantryDashboard({ grouped, userEmail, userPrefs, activeP
         userPrefs={userPrefs}
         onUpdate={handleUpdate}
       />
+
+      {activePantry && (
+        <ReceiptScannerModal
+          open={showReceiptModal}
+          onClose={() => setShowReceiptModal(false)}
+          activePantryId={activePantry.id}
+          onUpdate={handleUpdate}
+        />
+      )}
     </div>
   );
 }
