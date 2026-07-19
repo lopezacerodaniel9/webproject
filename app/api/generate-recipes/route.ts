@@ -88,8 +88,8 @@ Reglas estrictas para cada tipo:
 NO devuelvas NADA MÁS que el JSON (ni \`\`\`json al principio ni al final).
 `;
 
-    // Use gemini-1.5-flash as it's fast and highly capable of JSON output
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Use gemini-flash-latest to avoid 404 error
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
